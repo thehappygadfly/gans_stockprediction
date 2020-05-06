@@ -85,62 +85,47 @@ save_dir = '/home/GDdata'
 start = 0 
 for step in range(iterations):
     print('start iter %s' %step)
-    # 在潜在空间中抽样随机点
-    random_latent_vectors = np.random.normal(size=(batch_size, latent_dim))
-    
-    # 将随机抽样点解码为假图像
+
+    random_latent_vectors = np.random.normal(size=(batch_size, latent_dim)) 
     generated_images = generator.predict(random_latent_vectors)
-    
-    # 将假图像与真实图像进行比较
+   
     stop = start + batch_size
     real_images = train[start: stop].reshape([stop - start, 6, 6, 1])
    
     combined_images = np.concatenate([generated_images, real_images])
     
-    # 组装区别真假图像的标签
     labels = np.concatenate([np.ones((batch_size, 1)),
                             np.zeros((batch_size, 1))])
-    # 在标签上添加随机噪声
+
     labels += 0.05 * np.random.random(labels.shape)
-    
-    # 训练鉴别器（discrimitor）
+
     d_loss = discriminator.train_on_batch(combined_images, labels)
-    
-    # 在潜在空间中采样随机点
+
     random_latent_vectors = np.random.normal(size=(batch_size, latent_dim))
-    
-    # 汇集标有“所有真实图像”的标签
+
     misleading_targets = np.zeros((batch_size, 1))
-    
-    # 训练生成器（generator）（通过gan模型，鉴别器（discrimitor）权值被冻结）
+
     a_loss = gan.train_on_batch(random_latent_vectors, misleading_targets)
     
     start += batch_size
     if start > len(train) - batch_size:
         start = 0
     if step % 100 == 0:
-        # 保存网络权值
         gan.save_weights('gan.h5')
- 
-        # 输出metrics
+
         print('discriminator loss at step %s: %s' % (step, d_loss))
         print('adversarial loss at step %s: %s' % (step, a_loss))
- 
-        # 保存生成的图像
+
         img = image.array_to_img(generated_images[0] * 255., scale=False)
         img.save(os.path.join(save_dir, 'generated' + str(step) + '.png'))
- 
-        # 保存真实图像，以便进行比较
+
         img = image.array_to_img(real_images[0] * 255., scale=False)
         img.save(os.path.join(save_dir, 'real' + str(step) + '.png')) 
  
-# 绘图
 import matplotlib.pyplot as plt
- 
-# 在潜在空间中抽样随机点
+
 random_latent_vectors = np.random.normal(size=(10, latent_dim))
- 
-# 将随机抽样点解码为假图像
+
 generated_images = generator.predict(random_latent_vectors)
  
 for i in range(generated_images.shape[0]):
